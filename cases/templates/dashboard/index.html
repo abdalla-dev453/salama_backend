@@ -1,0 +1,57 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Dashboard - SALAMA Admin{% endblock %}
+{% block content %}
+<h1>SALAMA Admin</h1>
+<p class="lead">Overview &amp; case management</p>
+
+<div class="grid kpis">
+  <div class="card kpi"><div class="label">Total cases</div><div class="num">{{ stats.total }}</div>
+    <div class="note">
+      {{ stats.last_7_days }} in the last 7 days
+      {% if week_delta is not None %}({% if week_delta >= 0 %}+{% endif %}{{ week_delta }}% vs previous week){% endif %}
+    </div></div>
+  <div class="card kpi urgent"><div class="label">SOS urgent (unanswered)</div><div class="num">{{ stats.urgent }}</div>
+    <div class="note"><a href="{% url 'dashboard:cases' %}?type=sos&status=sos">View SOS cases</a></div></div>
+  <div class="card kpi"><div class="label">Referred</div><div class="num">{{ stats.referred }}</div><div class="note">to a facility</div></div>
+  <div class="card kpi"><div class="label">Closed</div><div class="num">{{ stats.closed }}</div><div class="note">{{ stats.pending }} still pending</div></div>
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h2>Case trend - last 30 days</h2>
+    <div class="bars" title="Cases received per day">
+      {% for d in stats.trend %}<span style="height:{{ d.pct }}%" title="{{ d.date }}: {{ d.count }}"></span>{% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h2>Cases by type</h2>
+    {% for r in type_rows %}<div class="bar-row"><span>{{ r.label }}</span><strong>{{ r.count }}</strong></div>{% endfor %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h2>Recent cases <a href="{% url 'dashboard:cases' %}" style="float:right;font-weight:400;font-size:14px">View all &rarr;</a></h2>
+  {% if recent %}
+  <table>
+    <tr><th>Case ID</th><th>Type</th><th>Location</th><th>Status</th><th>Assigned CHW</th><th></th></tr>
+    {% for c in recent %}
+    <tr>
+      <td>{{ c.case_ref }}</td><td>{{ c.get_type_display }}</td><td>{{ c.location_text|default:"-" }}</td>
+      <td><span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span></td>
+      <td>{{ c.assigned_to.display_name|default:"-" }}</td>
+      <td><a class="btn" href="/admin/cases/case/{{ c.pk }}/change/">View</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<div class="empty">No cases yet.</div>{% endif %}
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h2>CHW workload</h2>
+  {% if chws %}
+  <table><tr><th>CHW ID</th><th>Name</th><th>Area</th><th>Open cases</th></tr>
+    {% for u in chws %}<tr><td>{{ u.username }}</td><td>{{ u.full_name|default:"-" }}</td><td>{{ u.area|default:"-" }}</td><td>{{ u.open_cases }}</td></tr>{% endfor %}
+  </table>
+  {% else %}<div class="empty">No CHWs yet. Add them in Settings (admin) &rarr; Users, or run <code>python manage.py seed_demo</code>.</div>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "dashboard/base.html" %}
+{% block title %}CHWs - SALAMA Admin{% endblock %}
+{% block content %}
+<h1>Community Health Workers</h1>
+<p class="lead">Add, edit or deactivate CHWs in <a href="/admin/accounts/user/">Settings (admin) &rarr; Users</a>
+  (or through the API: <code>/api/chws/</code>). The CHW ID is the username.</p>
+<div class="card">
+{% if chws %}
+<table>
+  <tr><th>CHW ID</th><th>Name</th><th>Area</th><th>Phone</th><th>Open cases</th><th>Total</th><th>Active</th><th>Last login</th></tr>
+  {% for u in chws %}
+  <tr><td>{{ u.username }}</td><td>{{ u.full_name|default:"-" }}</td><td>{{ u.area|default:"-" }}</td>
+      <td>{{ u.phone|default:"-" }}</td><td>{{ u.open_cases }}</td><td>{{ u.total_cases }}</td>
+      <td>{{ u.is_active|yesno:"Yes,No" }}</td><td>{{ u.last_login|date:"d M H:i"|default:"never" }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}<div class="empty">No CHWs yet.</div>{% endif %}
+</div>
+{% endblock %}

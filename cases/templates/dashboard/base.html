@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}SALAMA Admin{% endblock %}</title>
+<style>
+  :root {
+    --purple-900:#2e1065; --purple-700:#5b21b6; --purple-600:#6d28d9; --purple-100:#ede9fe;
+    --purple-50:#f5f3ff; --ink:#1f1535; --muted:#6b6483; --card:#ffffff; --line:#e4def5;
+    --red:#b91c1c; --red-bg:#fee2e2; --amber:#b45309; --amber-bg:#fef3c7;
+    --green:#166534; --green-bg:#dcfce7; --blue:#1d4ed8; --blue-bg:#dbeafe;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--ink);
+         background:var(--purple-50); display:flex; min-height:100vh; }
+  nav { width:220px; background:var(--purple-900); color:#fff; padding:20px 14px; flex-shrink:0; }
+  nav .brand { font-weight:700; font-size:20px; margin-bottom:2px; }
+  nav .sub { color:#c4b5fd; font-size:12px; margin-bottom:24px; }
+  nav a { display:block; color:#e9e3ff; text-decoration:none; padding:10px 12px; border-radius:8px; margin-bottom:4px; }
+  nav a.active { background:var(--purple-600); color:#fff; }
+  nav a:hover { background:#4c1d95; }
+  nav .me { margin-top:28px; font-size:12px; color:#c4b5fd; }
+  main { flex:1; padding:24px 28px; min-width:0; }
+  h1 { margin:0 0 4px; font-size:26px; } .lead { color:var(--muted); margin:0 0 20px; }
+  .grid { display:grid; gap:16px; } .kpis { grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+  .kpi .label { color:var(--muted); font-size:13px; } .kpi .num { font-size:40px; font-weight:700; line-height:1.1; margin:4px 0; }
+  .kpi.urgent .num { color:var(--red); } .kpi .note { font-size:12px; color:var(--muted); }
+  .two { grid-template-columns:2fr 1fr; margin-top:16px; } @media (max-width:900px){ .two{grid-template-columns:1fr;} nav{width:150px;} }
+  h2 { font-size:16px; margin:0 0 12px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; color:var(--muted); font-weight:600; padding:8px 6px; border-bottom:1px solid var(--line); }
+  td { padding:10px 6px; border-bottom:1px solid #f1edfb; vertical-align:middle; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+  .b-sos { background:var(--red-bg); color:var(--red); } .b-new { background:var(--amber-bg); color:var(--amber); }
+  .b-responded { background:var(--blue-bg); color:var(--blue); } .b-referred { background:#fde8d4; color:#b45309; }
+  .b-followup, .b-closed { background:var(--green-bg); color:var(--green); }
+  .bars { display:flex; align-items:flex-end; gap:3px; height:110px; margin-top:8px; }
+  .bars span { flex:1; background:var(--purple-600); border-radius:3px 3px 0 0; min-height:0; }
+  .bar-row { display:flex; justify-content:space-between; font-size:14px; padding:6px 0; border-bottom:1px solid #f1edfb; }
+  select, button, .btn { font:inherit; padding:6px 10px; border-radius:8px; border:1px solid var(--line); background:#fff; }
+  button.primary, .btn.primary { background:var(--purple-600); color:#fff; border-color:var(--purple-600); cursor:pointer; }
+  .filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .msg { background:var(--green-bg); color:var(--green); padding:10px 14px; border-radius:10px; margin-bottom:14px; }
+  .pager { margin-top:14px; display:flex; gap:12px; align-items:center; }
+  a { color:var(--purple-700); }
+  .empty { color:var(--muted); padding:18px 0; }
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">SALAMA</div><div class="sub">Admin Portal</div>
+  <a href="{% url 'dashboard:index' %}" class="{% if active_nav == 'dashboard' %}active{% endif %}">Dashboard</a>
+  <a href="{% url 'dashboard:cases' %}" class="{% if active_nav == 'cases' %}active{% endif %}">Cases</a>
+  <a href="{% url 'dashboard:chws' %}" class="{% if active_nav == 'chws' %}active{% endif %}">CHWs</a>
+  <a href="/admin/">Settings (admin)</a>
+  <div class="me">{{ request.user.display_name }}<br>
+    <form method="post" action="{% url 'admin:logout' %}" style="margin-top:8px">{% csrf_token %}
+      <button type="submit" style="font-size:12px">Log out</button></form></div>
+</nav>
+<main>
+  {% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>
