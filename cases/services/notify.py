@@ -32,9 +32,19 @@ def send_sms(phones, message: str) -> bool:
 
 def notify_chws_of_sos(case_ref: str) -> None:
     """
-    Alerts every active CHW that has a phone number. The message contains NO
-    personal data and no location: only the reference, so they open the app.
+    Alerts CHWs of a new SOS: a push notification (if Firebase is set up) and,
+    optionally, an SMS. Both contain NO personal data and no location: only the
+    reference, so they open the app.
     """
+    # 1) push (does nothing unless FCM_CREDENTIALS_FILE is set)
+    try:
+        from extras.push import push_sos_to_chws
+
+        push_sos_to_chws(case_ref)
+    except Exception:  # noqa: BLE001
+        logger.exception("push alert failed")
+
+    # 2) SMS (as before)
     if not settings.NOTIFY_CHWS_ON_SOS:
         return
     from accounts.models import User
