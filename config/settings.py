@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "django_filters",
     "accounts",
     "cases",
+    "extras",
 ]
 
 MIDDLEWARE = [
@@ -179,6 +180,9 @@ REST_FRAMEWORK = {
         "intake": env("THROTTLE_INTAKE", "300/hour"),
         "login": env("THROTTLE_LOGIN", "20/min"),
         "sms_webhook": env("THROTTLE_SMS_WEBHOOK", "1000/hour"),
+        "public_read": env("THROTTLE_PUBLIC_READ", "120/hour"),
+        "status_check": env("THROTTLE_STATUS_CHECK", "30/hour"),
+        "ussd": env("THROTTLE_USSD", "2000/hour"),
     },
     "NUM_PROXIES": int(env("NUM_PROXIES", "0")),
 }
@@ -208,6 +212,8 @@ AT_API_KEY = env("AT_API_KEY", "")
 AT_SENDER_ID = env("AT_SENDER_ID", "")
 AT_SANDBOX = env_bool("AT_SANDBOX", False)
 NOTIFY_CHWS_ON_SOS = env_bool("NOTIFY_CHWS_ON_SOS", False)
+# Firebase service-account JSON for push alerts to CHW phones (empty = push off).
+FCM_CREDENTIALS_FILE = env("FCM_CREDENTIALS_FILE", "")
 
 # Field-level encryption of sensitive text (description, phone numbers, notes,
 # raw SMS). Comma separated Fernet keys; the FIRST encrypts, all can decrypt
