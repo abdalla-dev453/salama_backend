@@ -1,0 +1,21 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Settings - SALAMA Admin{% endblock %}
+{% block h1 %}Settings{% endblock %}
+{% block lead %}System status (read-only) and shortcuts. Secrets are never shown here.{% endblock %}
+{% block content %}
+<div class="grid two">
+  <div class="card"><h2>System status</h2>
+    <table>{% for name, ok, hint in checks %}
+      <tr><td>{{ name }}<div class="note">{{ hint }}</div></td><td>{% if ok %}<span class="pill-ok">On</span>{% else %}<span class="pill-no">Off</span>{% endif %}</td></tr>
+    {% endfor %}</table>
+    <p class="note">Change these in the server's <code>.env</code> file, then restart.</p>
+  </div>
+  <div class="card"><h2>Manage</h2>
+    {% for label, url in links %}<p><a class="btn ghost" href="{{ url }}">{{ label }}</a></p>{% endfor %}
+    <h2 style="margin-top:18px">Data protection reminders</h2>
+    <ul class="note"><li>Back up the database and the encryption keys separately.</li>
+    <li>Run <code>purge_old_cases</code> on a schedule that matches your retention policy.</li>
+    <li>Remove CHW accounts when people leave (Deactivate on the CHWs page).</li></ul>
+  </div>
+</div>
+{% endblock %}

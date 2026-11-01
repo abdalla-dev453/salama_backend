@@ -1,0 +1,16 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Settings · SALAMA{% endblock %}
+{% block h1 %}Settings{% endblock %}
+{% block lead %}System readiness and staff shortcuts. Secret values are never displayed here.{% endblock %}
+{% block content %}
+<div class="grid two">
+  <section class="card"><div class="section-head"><span class="card-title-icon">◉</span><h2>System status</h2><span class="badge">Read only</span></div>
+    <div class="table-wrap"><table><tbody>{% for name,ok,hint in checks %}<tr><td><strong>{{ name }}</strong><div class="note" style="white-space:normal;max-width:400px">{{ hint }}</div></td><td>{% if ok %}<span class="pill-ok"><i class="status-dot"></i>On</span>{% else %}<span class="pill-no"><i class="status-dot off"></i>Off</span>{% endif %}</td></tr>{% empty %}<tr><td class="empty">No system checks are configured.</td></tr>{% endfor %}</tbody></table></div>
+    <p class="note" style="margin:14px 0 0">To change a setting, update the server's <code>.env</code> file and restart the service.</p>
+  </section>
+  <section class="card"><div class="section-head"><span class="card-title-icon">↗</span><h2>Admin shortcuts</h2></div>
+    <div style="display:grid;gap:9px">{% for label,url in links %}<a class="btn ghost" style="justify-content:flex-start" href="{{ url }}">{{ label }} <span style="margin-left:auto">→</span></a>{% endfor %}</div>
+    <div class="section-gap"><h2>Data protection reminders</h2><ul class="note" style="padding-left:19px;line-height:1.9"><li>Back up the database and encryption keys separately.</li><li>Schedule <code>purge_old_cases</code> to match the retention policy.</li><li>Deactivate CHW accounts when staff leave.</li></ul></div>
+  </section>
+</div>
+{% endblock %}

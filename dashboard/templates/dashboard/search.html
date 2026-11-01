@@ -1,0 +1,15 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Search · SALAMA{% endblock %}
+{% block h1 %}Search{% endblock %}
+{% block lead %}{% if query %}Showing results for “{{ query }}”{% else %}Find a case, location or community health worker.{% endif %}{% endblock %}
+{% block content %}
+{% if not query %}<div class="card" style="margin-bottom:16px"><div class="empty">Enter a case ID, place or CHW name in the search field above.</div></div>{% endif %}
+<div class="grid two">
+  <section class="card"><div class="section-head"><span class="card-title-icon">▤</span><h2>Cases</h2><span class="note right">{{ cases|length }} found</span></div>
+    {% if cases %}<div class="table-wrap"><table><thead><tr><th>Case</th><th>Location</th><th>Status</th><th>Assigned CHW</th></tr></thead><tbody>{% for c in cases %}<tr><td><a href="/admin/cases/case/{{ c.pk }}/change/"><strong>{{ c.case_ref }}</strong></a><div class="note">{{ c.get_type_display }}</div></td><td>{{ c.location_text|default:"—" }}</td><td><span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span></td><td>{{ c.assigned_to.display_name|default:"Unassigned" }}</td></tr>{% endfor %}</tbody></table></div>{% elif query %}<div class="empty">No matching cases.</div>{% endif %}
+  </section>
+  <section class="card"><div class="section-head"><span class="card-title-icon">♙</span><h2>Community health workers</h2><span class="note right">{{ chws|length }} found</span></div>
+    {% if chws %}<div class="table-wrap"><table><thead><tr><th>CHW ID</th><th>Name</th><th>Area</th></tr></thead><tbody>{% for u in chws %}<tr><td><strong>{{ u.username }}</strong></td><td>{{ u.full_name|default:"—" }}</td><td>{{ u.area|default:"—" }}</td></tr>{% endfor %}</tbody></table></div>{% elif query %}<div class="empty">No matching CHWs.</div>{% endif %}
+  </section>
+</div>
+{% endblock %}

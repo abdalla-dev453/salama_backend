@@ -1,0 +1,23 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Community health workers · SALAMA{% endblock %}
+{% block h1 %}Community health workers{% endblock %}
+{% block lead %}Manage CHW access, contact details and case assignments.{% endblock %}
+{% block content %}
+<section class="card" style="margin-bottom:16px"><div class="section-head"><span class="card-title-icon">＋</span><h2>Add a CHW</h2><span class="note right">Use the CHW ID as their username.</span></div>
+  <form method="post" class="formrow">{% csrf_token %}<input type="hidden" name="action" value="create">
+    <div><label for="chw-username">CHW ID</label><input id="chw-username" type="text" name="username" placeholder="CHW-KWALE-005" required></div>
+    <div><label for="chw-name">Full name</label><input id="chw-name" type="text" name="full_name" autocomplete="name"></div>
+    <div><label for="chw-phone">Phone</label><input id="chw-phone" type="tel" name="phone" placeholder="0712345678" autocomplete="tel"></div>
+    <div><label for="chw-area">Area</label><input id="chw-area" type="text" name="area" placeholder="Ukunda"></div>
+    <div><label for="chw-password">Temporary password</label><input id="chw-password" type="password" name="password" autocomplete="new-password" required></div>
+    <button class="btn" type="submit">Create CHW</button>
+  </form>
+</section>
+<section class="card"><div class="section-head"><span class="card-title-icon">♙</span><h2>CHW accounts</h2><span class="note right">{{ chws|length }} accounts</span></div>
+  {% if chws %}<div class="table-wrap"><table><thead><tr><th>CHW ID</th><th>Name</th><th>Area</th><th>Phone</th><th>Open cases</th><th>Total cases</th><th>Last login</th><th>Account</th><th>Reset password</th></tr></thead><tbody>
+  {% for u in chws %}<tr><td><strong>{{ u.username }}</strong></td><td>{{ u.full_name|default:"—" }}</td><td>{{ u.area|default:"—" }}</td><td>{{ u.phone|default:"—" }}</td><td>{{ u.open_cases }}</td><td>{{ u.total_cases }}</td><td>{% if u.last_login %}{{ u.last_login|date:"d M Y, H:i" }}{% else %}Never{% endif %}</td>
+    <td><form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="{{ u.pk }}"><button class="btn {% if u.is_active %}ghost{% endif %}" type="submit">{% if u.is_active %}Deactivate{% else %}Activate{% endif %}</button></form></td>
+    <td><form method="post" style="display:flex;gap:6px;align-items:center">{% csrf_token %}<input type="hidden" name="action" value="password"><input type="hidden" name="id" value="{{ u.pk }}"><input type="password" name="password" placeholder="New password" autocomplete="new-password" aria-label="New password for {{ u.username }}" required style="width:145px"><button class="btn ghost" type="submit">Set</button></form></td></tr>
+  {% endfor %}</tbody></table></div>{% else %}<div class="empty">No CHWs yet. Add your first community health worker above.</div>{% endif %}
+</section>
+{% endblock %}

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import casework, views
+from . import casework, chw_cases, views
 from .ussd import UssdView
 
 urlpatterns = [
@@ -11,6 +11,7 @@ urlpatterns = [
     path("reports/anonymous.csv", views.ExportCsvView.as_view()),
     path("reports/response-times/", views.ResponseTimesView.as_view()),
     path("ussd/africastalking/", UssdView.as_view()),
+    path("new-case/", chw_cases.CreateCaseView.as_view()),
     path("cases/<uuid:case_id>/followups/", casework.CaseFollowUps.as_view()),
     path("cases/<uuid:case_id>/referrals/", casework.CaseReferrals.as_view()),
     path("followups/mine/", casework.MyFollowUps.as_view()),
