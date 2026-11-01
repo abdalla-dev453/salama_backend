@@ -1,0 +1,42 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Dashboard · SALAMA{% endblock %}
+{% block h1 %}Good to see you{% endblock %}
+{% block lead %}A clear view of the support reaching your community.{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endblock %}
+{% block content %}
+<section class="grid kpis" aria-label="Case overview">
+  <article class="card kpi"><span class="kpi-icon">↗</span><div class="kpi-label">Total cases</div><div class="kpi-value">{{ stats.total|default:0 }}</div><div class="note">{{ last30|default:0 }} received in the last 30 days {% if total_delta is not None %}<span class="{% if total_delta >= 0 %}up{% else %}down{% endif %}">{% if total_delta >= 0 %}+{% endif %}{{ total_delta }}%</span>{% endif %}</div></article>
+  <article class="card kpi urgent"><span class="kpi-icon">!</span><div class="kpi-label">Urgent SOS</div><div class="kpi-value">{{ stats.urgent|default:0 }}</div><div class="note {% if sos_today > sos_yesterday %}down{% endif %}">{{ sos_today|default:0 }} today <span aria-hidden="true">·</span> {{ sos_yesterday|default:0 }} yesterday</div></article>
+  <article class="card kpi"><span class="kpi-icon">⇢</span><div class="kpi-label">Referred</div><div class="kpi-value">{{ stats.referred|default:0 }}</div><div class="note">{{ referred_week|default:0 }} referred in the last 7 days</div></article>
+  <article class="card kpi"><span class="kpi-icon">✓</span><div class="kpi-label">Closed</div><div class="kpi-value">{{ stats.closed|default:0 }}</div><div class="note up">{{ closed_month|default:0 }} closed in the last 30 days</div></article>
+</section>
+<section class="grid two">
+  <article class="card"><div class="card-head"><span class="card-title-icon">⌖</span><h2>Case locations <span class="note">· Kwale</span></h2></div>
+    <div id="map" class="map" role="img" aria-label="Approximate grouped case locations in Kwale"></div>
+    <div class="note" style="margin-top:10px">{{ open_with_gps|default:0 }} open cases with GPS · {{ no_gps|default:0 }} without GPS · locations rounded to about 1 km</div>
+    <div class="legend"><span><i style="background:#6d28d9"></i>Standard case</span><span><i style="background:#c2413b"></i>SOS urgent</span></div>
+  </article>
+  <article class="card"><div class="card-head"><span class="card-title-icon">⌁</span><h2>Case trends</h2><span class="right range" aria-label="Trend period"><a href="?days=7" class="{% if days == 7 %}on{% endif %}">7d</a><a href="?days=30" class="{% if days == 30 %}on{% endif %}">30d</a><a href="?days=90" class="{% if days == 90 %}on{% endif %}">90d</a></span></div>
+    <svg class="chart" viewBox="0 0 {{ W }} {{ H }}" role="img" aria-label="Cases per day during the last {{ days }} days">
+      <line class="chart-grid" x1="0" y1="40" x2="{{ W }}" y2="40"/><line class="chart-grid" x1="0" y1="85" x2="{{ W }}" y2="85"/><line class="chart-grid" x1="0" y1="130" x2="{{ W }}" y2="130"/>
+      <polygon class="chart-area" points="{{ area }}"/><polyline class="chart-line" points="{{ line }}"/>
+      {% for d in dots %}<circle class="chart-dot" cx="{{ d.x }}" cy="{{ d.y }}" r="4"><title>{{ d.t }}</title></circle>{% endfor %}
+    </svg>
+    <div class="section-gap"><div class="card-head"><h2>Cases by type</h2></div><div class="data-list">
+    {% for r in type_rows %}<div class="data-row"><div class="data-label"><span>{{ r.label }}</span><strong>{{ r.count }}</strong></div><div class="bar"><i style="width:{{ r.pct }}%"></i></div></div>{% empty %}<div class="empty">No case types to show.</div>{% endfor %}
+    </div></div>
+  </article>
+</section>
+<section class="card section-gap"><div class="section-head"><span class="card-title-icon">▤</span><h2>Recent cases</h2><a class="right" href="{% url 'dashboard:cases' %}">View all →</a></div>
+  {% if recent %}<div class="table-wrap"><table><thead><tr><th>Case ID</th><th>Type</th><th>Location</th><th>Status</th><th>Assigned CHW</th><th>Actions</th></tr></thead><tbody>
+  {% for c in recent %}<tr><td><strong>{{ c.case_ref }}</strong></td><td>{{ c.get_type_display }}</td><td>{{ c.location_text|default:"—" }}</td><td><span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span></td><td>{{ c.assigned_to.display_name|default:"Unassigned" }}</td><td><form method="post" action="{% url 'dashboard:assign' c.pk %}" style="display:flex;gap:6px;align-items:center">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><a class="btn ghost" href="/admin/cases/case/{{ c.pk }}/change/">Open</a><select name="chw" aria-label="Assign {{ c.case_ref }}"><option value="">Unassigned</option>{% for u in chws %}<option value="{{ u.pk }}" {% if u.pk == c.assigned_to_id %}selected{% endif %}>{{ u.display_name }}</option>{% endfor %}</select><button class="btn" type="submit">Assign</button></form></td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty">No cases have been reported yet.</div>{% endif %}
+</section>
+{{ clusters|json_script:"clusters" }}
+<script>
+(function(){var el=document.getElementById('map');if(!window.L){el.innerHTML='<div class="empty">The map needs an internet connection to load.</div>';return;}var node=document.getElementById('clusters');var data=node?JSON.parse(node.textContent):[];var map=L.map('map',{scrollWheelZoom:false,zoomControl:true}).setView([-4.17,39.45],9);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:15,attribution:'&copy; OpenStreetMap'}).addTo(map);var pts=[];data.forEach(function(c){var color=c.urgent?'#c2413b':'#6d28d9';var marker=L.circleMarker([c.lat,c.lon],{radius:Math.min(9+c.n*2,24),color:color,fillColor:color,fillOpacity:.55,weight:2}).addTo(map);marker.bindTooltip(String(c.n)+(c.n===1?' case':' cases')+(c.urgent?' · SOS':''),{permanent:c.n>1,direction:'center'});pts.push([c.lat,c.lon]);});if(pts.length){map.fitBounds(pts,{maxZoom:11,padding:[28,28]});}})();
+</script>
+{% endblock %}

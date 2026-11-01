@@ -1,0 +1,16 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Search - SALAMA Admin{% endblock %}
+{% block h1 %}Search{% endblock %}
+{% block lead %}{% if query %}Results for "{{ query }}"{% else %}Type a case ID, a place or a CHW name.{% endif %}{% endblock %}
+{% block content %}
+<div class="grid two">
+  <div class="card"><h2>Cases</h2>
+    {% if cases %}<table>{% for c in cases %}<tr><td><a href="/admin/cases/case/{{ c.pk }}/change/"><strong>{{ c.case_ref }}</strong></a></td>
+      <td>{{ c.location_text|default:"-" }}</td><td><span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span></td>
+      <td>{{ c.assigned_to.display_name|default:"-" }}</td></tr>{% endfor %}</table>
+    {% else %}<div class="empty">No cases found.</div>{% endif %}</div>
+  <div class="card"><h2>CHWs</h2>
+    {% if chws %}<table>{% for u in chws %}<tr><td><strong>{{ u.username }}</strong></td><td>{{ u.full_name|default:"-" }}</td><td>{{ u.area|default:"-" }}</td></tr>{% endfor %}</table>
+    {% else %}<div class="empty">No CHWs found.</div>{% endif %}</div>
+</div>
+{% endblock %}

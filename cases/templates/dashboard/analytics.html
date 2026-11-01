@@ -1,0 +1,37 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Analytics - SALAMA Admin{% endblock %}
+{% block h1 %}Analytics{% endblock %}
+{% block lead %}Anonymous numbers for reports. No names, no phone numbers. Counts under {{ min_cell|default:5 }} show as &lt;{{ min_cell|default:5 }}.{% endblock %}
+{% block content %}
+{% if not enabled %}
+<div class="card"><div class="empty">Analytics needs the v4 "extras" app. Run apply_extras.py first.</div></div>
+{% else %}
+<form method="get" class="filters">
+  <input type="date" name="from" value="{{ date_from }}"> <input type="date" name="to" value="{{ date_to }}">
+  <button class="btn" type="submit">Apply</button>
+  <a class="btn ghost" href="/api/reports/anonymous.csv?{{ qs_string }}">Download CSV</a>
+</form>
+<div class="grid two">
+  <div class="card">
+    <h2>Cases by area and type</h2>
+    {% if pivot_rows %}
+    <table><tr><th>Area</th>{% for l in type_labels %}<th>{{ l }}</th>{% endfor %}<th>Total</th></tr>
+      {% for r in pivot_rows %}<tr><td><strong>{{ r.area }}</strong></td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>{% endfor %}
+    </table>
+    <p class="note">Area comes from the words in the location the survivor typed (Ukunda, Diani, Msambweni...).</p>
+    {% else %}<div class="empty">No cases in this period.</div>{% endif %}
+  </div>
+  <div class="card">
+    <h2>Response times</h2>
+    <p class="note">Minutes from a report arriving to a CHW's first action (take, status change or note).</p>
+    <table>
+      <tr><th></th><th>Cases</th><th>Median (min)</th><th>Average (min)</th></tr>
+      <tr><td>All cases</td><td>{{ times.overall.cases }}</td><td>{{ times.overall.median_min|default:"-" }}</td><td>{{ times.overall.average_min|default:"-" }}</td></tr>
+      <tr><td>SOS only</td><td>{{ times.sos.cases }}</td><td>{{ times.sos.median_min|default:"-" }}</td><td>{{ times.sos.average_min|default:"-" }}</td></tr>
+      {% for name, t in times.per_chw.items %}<tr><td>{{ name }}</td><td>{{ t.cases }}</td><td>{{ t.median_min|default:"-" }}</td><td>{{ t.average_min|default:"-" }}</td></tr>{% endfor %}
+    </table>
+    <p class="note"><strong>{{ times.never_answered }}</strong> cases have had no CHW action yet.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

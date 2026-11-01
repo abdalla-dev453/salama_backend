@@ -75,7 +75,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        # Keep the staff dashboard templates in their own top-level folder.
+        "DIRS": [BASE_DIR / "dashboard" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

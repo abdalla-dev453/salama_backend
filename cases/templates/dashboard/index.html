@@ -1,57 +1,90 @@
 {% extends "dashboard/base.html" %}
 {% block title %}Dashboard - SALAMA Admin{% endblock %}
+{% block h1 %}SALAMA Admin{% endblock %}
+{% block lead %}Overview &amp; case management{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
 {% block content %}
-<h1>SALAMA Admin</h1>
-<p class="lead">Overview &amp; case management</p>
-
 <div class="grid kpis">
-  <div class="card kpi"><div class="label">Total cases</div><div class="num">{{ stats.total }}</div>
-    <div class="note">
-      {{ stats.last_7_days }} in the last 7 days
-      {% if week_delta is not None %}({% if week_delta >= 0 %}+{% endif %}{{ week_delta }}% vs previous week){% endif %}
-    </div></div>
-  <div class="card kpi urgent"><div class="label">SOS urgent (unanswered)</div><div class="num">{{ stats.urgent }}</div>
-    <div class="note"><a href="{% url 'dashboard:cases' %}?type=sos&status=sos">View SOS cases</a></div></div>
-  <div class="card kpi"><div class="label">Referred</div><div class="num">{{ stats.referred }}</div><div class="note">to a facility</div></div>
-  <div class="card kpi"><div class="label">Closed</div><div class="num">{{ stats.closed }}</div><div class="note">{{ stats.pending }} still pending</div></div>
+  <div class="card kpi"><span class="ico">&#8599;</span><div class="label">Total Cases</div><div class="num">{{ stats.total }}</div>
+    <div class="note">{{ last30 }} received in the last 30 days
+      {% if total_delta is not None %}<span class="{% if total_delta >= 0 %}up{% else %}down{% endif %}">({% if total_delta >= 0 %}+{% endif %}{{ total_delta }}%)</span>{% endif %}</div></div>
+  <div class="card kpi urgent"><span class="ico">&#9888;</span><div class="label">SOS Urgent</div><div class="num">{{ stats.urgent }}</div>
+    <div class="note {% if sos_today > sos_yesterday %}down{% endif %}">{{ sos_today }} new today, {{ sos_yesterday }} yesterday</div></div>
+  <div class="card kpi"><span class="ico">&#10150;</span><div class="label">Referred</div><div class="num">{{ stats.referred }}</div>
+    <div class="note">{{ referred_week }} referred in the last 7 days</div></div>
+  <div class="card kpi"><span class="ico">&#10003;</span><div class="label">Closed</div><div class="num">{{ stats.closed }}</div>
+    <div class="note up">{{ closed_month }} closed in the last 30 days</div></div>
 </div>
 
 <div class="grid two">
   <div class="card">
-    <h2>Case trend - last 30 days</h2>
-    <div class="bars" title="Cases received per day">
-      {% for d in stats.trend %}<span style="height:{{ d.pct }}%" title="{{ d.date }}: {{ d.count }}"></span>{% endfor %}
-    </div>
+    <h2>Case Locations &mdash; Kwale</h2>
+    <div id="map" style="height:260px;border-radius:12px;background:#efe9fc"></div>
+    <div class="note" style="margin-top:8px">{{ open_with_gps }} open cases with GPS &middot; {{ no_gps }} cases without GPS &middot; locations rounded to about 1 km</div>
+    <div class="legend"><span><i style="background:#5b21b6"></i>Standard case</span><span><i style="background:#c0262d"></i>SOS urgent</span></div>
   </div>
   <div class="card">
-    <h2>Cases by type</h2>
-    {% for r in type_rows %}<div class="bar-row"><span>{{ r.label }}</span><strong>{{ r.count }}</strong></div>{% endfor %}
+    <h2>Case Trends
+      <span class="right range">
+        <a href="?days=7" class="{% if days == 7 %}on{% endif %}">7 days</a><a href="?days=30" class="{% if days == 30 %}on{% endif %}">30 days</a><a href="?days=90" class="{% if days == 90 %}on{% endif %}">90 days</a>
+      </span></h2>
+    <svg viewBox="0 0 {{ W }} {{ H }}" width="100%" role="img" aria-label="Cases per day, last {{ days }} days">
+      <polygon points="{{ area }}" fill="#ede9fe"/>
+      <polyline points="{{ line }}" fill="none" stroke="#5b21b6" stroke-width="2.5" stroke-linejoin="round"/>
+      {% for d in dots %}<circle cx="{{ d.x }}" cy="{{ d.y }}" r="3.5" fill="#5b21b6"><title>{{ d.t }}</title></circle>{% endfor %}
+    </svg>
+    <h2 style="margin-top:14px">Cases by Type</h2>
+    {% for r in type_rows %}
+    <div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:14px"><span>{{ r.label }}</span><strong>{{ r.count }}</strong></div>
+      <div class="bar"><i style="width:{{ r.pct }}%"></i></div></div>
+    {% endfor %}
   </div>
 </div>
 
 <div class="card" style="margin-top:16px">
-  <h2>Recent cases <a href="{% url 'dashboard:cases' %}" style="float:right;font-weight:400;font-size:14px">View all &rarr;</a></h2>
+  <h2>Recent Cases <a class="right" href="{% url 'dashboard:cases' %}">View all &rarr;</a></h2>
   {% if recent %}
   <table>
-    <tr><th>Case ID</th><th>Type</th><th>Location</th><th>Status</th><th>Assigned CHW</th><th></th></tr>
+    <tr><th>Case ID</th><th>Type</th><th>Location</th><th>Status</th><th>Assigned CHW</th><th>Actions</th></tr>
     {% for c in recent %}
     <tr>
-      <td>{{ c.case_ref }}</td><td>{{ c.get_type_display }}</td><td>{{ c.location_text|default:"-" }}</td>
+      <td><strong>{{ c.case_ref }}</strong></td><td>{{ c.get_type_display }}</td><td>{{ c.location_text|default:"-" }}</td>
       <td><span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span></td>
       <td>{{ c.assigned_to.display_name|default:"-" }}</td>
-      <td><a class="btn" href="/admin/cases/case/{{ c.pk }}/change/">View</a></td>
+      <td>
+        <form method="post" action="{% url 'dashboard:assign' c.pk %}" style="display:flex;gap:6px;align-items:center">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <a class="btn" href="/admin/cases/case/{{ c.pk }}/change/">View</a>
+          <select name="chw"><option value="">unassigned</option>
+            {% for u in chws %}<option value="{{ u.pk }}" {% if u.pk == c.assigned_to_id %}selected{% endif %}>{{ u.display_name }}</option>{% endfor %}</select>
+          <button class="btn" type="submit">Assign</button>
+        </form>
+      </td>
     </tr>
     {% endfor %}
   </table>
   {% else %}<div class="empty">No cases yet.</div>{% endif %}
 </div>
 
-<div class="card" style="margin-top:16px">
-  <h2>CHW workload</h2>
-  {% if chws %}
-  <table><tr><th>CHW ID</th><th>Name</th><th>Area</th><th>Open cases</th></tr>
-    {% for u in chws %}<tr><td>{{ u.username }}</td><td>{{ u.full_name|default:"-" }}</td><td>{{ u.area|default:"-" }}</td><td>{{ u.open_cases }}</td></tr>{% endfor %}
-  </table>
-  {% else %}<div class="empty">No CHWs yet. Add them in Settings (admin) &rarr; Users, or run <code>python manage.py seed_demo</code>.</div>{% endif %}
-</div>
+{{ clusters|json_script:"clusters" }}
+<script>
+(function () {
+  var el = document.getElementById('map');
+  if (!window.L) { el.innerHTML = '<p style="padding:16px" class="note">The map needs internet to load.</p>'; return; }
+  var data = JSON.parse(document.getElementById('clusters').textContent);
+  var map = L.map('map', {scrollWheelZoom:false}).setView([-4.17, 39.45], 9);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 15, attribution: '&copy; OpenStreetMap'}).addTo(map);
+  var pts = [];
+  data.forEach(function (c) {
+    var m = L.circleMarker([c.lat, c.lon], {radius: Math.min(10 + c.n * 2, 26), color: c.urgent ? '#c0262d' : '#5b21b6',
+      fillColor: c.urgent ? '#c0262d' : '#5b21b6', fillOpacity: .55, weight: 2}).addTo(map);
+    m.bindTooltip(String(c.n) + (c.n === 1 ? ' case' : ' cases') + (c.urgent ? ' (SOS)' : ''), {permanent: c.n > 1, direction: 'center'});
+    pts.push([c.lat, c.lon]);
+  });
+  if (pts.length) map.fitBounds(pts, {maxZoom: 11, padding: [30, 30]});
+})();
+</script>
 {% endblock %}
