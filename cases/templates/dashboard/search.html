@@ -1,16 +1,96 @@
 {% extends "dashboard/base.html" %}
 {% block title %}Search - SALAMA Admin{% endblock %}
 {% block h1 %}Search{% endblock %}
-{% block lead %}{% if query %}Results for "{{ query }}"{% else %}Type a case ID, a place or a CHW name.{% endif %}{% endblock %}
+{% block lead %}{% if query %}Results matching "{{ query }}"{% else %}Search by case ID, location keywords, or CHW profile{% endif %}{% endblock %}
+
 {% block content %}
 <div class="grid two">
-  <div class="card"><h2>Cases</h2>
-    {% if cases %}<table>{% for c in cases %}<tr><td><a href="/admin/cases/case/{{ c.pk }}/change/"><strong>{{ c.case_ref }}</strong></a></td>
-      <td>{{ c.location_text|default:"-" }}</td><td><span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span></td>
-      <td>{{ c.assigned_to.display_name|default:"-" }}</td></tr>{% endfor %}</table>
-    {% else %}<div class="empty">No cases found.</div>{% endif %}</div>
-  <div class="card"><h2>CHWs</h2>
-    {% if chws %}<table>{% for u in chws %}<tr><td><strong>{{ u.username }}</strong></td><td>{{ u.full_name|default:"-" }}</td><td>{{ u.area|default:"-" }}</td></tr>{% endfor %}</table>
-    {% else %}<div class="empty">No CHWs found.</div>{% endif %}</div>
+  <!-- Case search results -->
+  <div class="card">
+    <h2>
+      <i class="fa-solid fa-folder-open text-indigo-600"></i>
+      <span>Matching Cases</span>
+      {% if cases %}
+        <span class="badge b-responded right" style="font-size:11px">{{ cases|length }} found</span>
+      {% endif %}
+    </h2>
+
+    {% if cases %}
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Case ID</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Assigned CHW</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in cases %}
+            <tr>
+              <td>
+                <a href="/admin/cases/case/{{ c.pk }}/change/" style="text-decoration:none; color:var(--p700)">
+                  <strong>{{ c.case_ref }}</strong>
+                </a>
+              </td>
+              <td><span class="note">{{ c.location_text|default:"-" }}</span></td>
+              <td><span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span></td>
+              <td>{{ c.assigned_to.display_name|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty">
+        <i class="fa-solid fa-magnifying-glass" style="font-size:28px; color:var(--muted); margin-bottom:8px; display:block"></i>
+        <span>No cases found matching your criteria.</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- CHW search results -->
+  <div class="card">
+    <h2>
+      <i class="fa-solid fa-user-nurse text-indigo-600"></i>
+      <span>Matching CHWs</span>
+      {% if chws %}
+        <span class="badge b-closed right" style="font-size:11px">{{ chws|length }} found</span>
+      {% endif %}
+    </h2>
+
+    {% if chws %}
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>CHW ID</th>
+              <th>Name</th>
+              <th>Area</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in chws %}
+            <tr>
+              <td>
+                <a href="{% url 'dashboard:chws' %}" style="text-decoration:none; color:var(--p700)">
+                  <strong>{{ u.username }}</strong>
+                </a>
+              </td>
+              <td>{{ u.full_name|default:"-" }}</td>
+              <td><span class="note">{{ u.area|default:"-" }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty">
+        <i class="fa-solid fa-user-xmark" style="font-size:28px; color:var(--muted); margin-bottom:8px; display:block"></i>
+        <span>No CHWs found matching your criteria.</span>
+      </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
