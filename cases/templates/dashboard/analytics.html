@@ -1,36 +1,143 @@
 {% extends "dashboard/base.html" %}
 {% block title %}Analytics - SALAMA Admin{% endblock %}
 {% block h1 %}Analytics{% endblock %}
-{% block lead %}Anonymous numbers for reports. No names, no phone numbers. Counts under {{ min_cell|default:5 }} show as &lt;{{ min_cell|default:5 }}.{% endblock %}
+{% block lead %}Anonymous aggregates &amp; response speed metrics (k-anonymity enforced).{% endblock %}
+
 {% block content %}
+<style>
+  .analytics-filters {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 768px) {
+    .analytics-filters {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .analytics-filters input, .analytics-filters button, .analytics-filters a {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+  }
+</style>
+
 {% if not enabled %}
-<div class="card"><div class="empty">Analytics needs the v4 "extras" app. Run apply_extras.py first.</div></div>
-{% else %}
-<form method="get" class="filters">
-  <input type="date" name="from" value="{{ date_from }}"> <input type="date" name="to" value="{{ date_to }}">
-  <button class="btn" type="submit">Apply</button>
-  <a class="btn ghost" href="/api/reports/anonymous.csv?{{ qs_string }}">Download CSV</a>
-</form>
-<div class="grid two">
-  <div class="card">
-    <h2>Cases by area and type</h2>
-    {% if pivot_rows %}
-    <table><tr><th>Area</th>{% for l in type_labels %}<th>{{ l }}</th>{% endfor %}<th>Total</th></tr>
-      {% for r in pivot_rows %}<tr><td><strong>{{ r.area }}</strong></td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>{% endfor %}
-    </table>
-    <p class="note">Area comes from the words in the location the survivor typed (Ukunda, Diani, Msambweni...).</p>
-    {% else %}<div class="empty">No cases in this period.</div>{% endif %}
+<div class="card">
+  <div class="empty">
+    <i class="fa-solid fa-chart-simple" style="font-size:32px; color:var(--muted); margin-bottom:10px; display:block"></i>
+    <p>Analytics requires the v4 "extras" app. Run <code>apply_extras.py</code> first.</p>
   </div>
+</div>
+{% else %}
+<form method="get" class="analytics-filters">
+  <div style="display:flex; gap:8px; align-items:center; flex:1">
+    <input type="date" name="from" value="{{ date_from }}" aria-label="From date" style="flex:1">
+    <span class="note">&rarr;</span>
+    <input type="date" name="to" value="{{ date_to }}" aria-label="To date" style="flex:1">
+  </div>
+  <button class="btn" type="submit">
+    <i class="fa-solid fa-check"></i>
+    <span>Apply Range</span>
+  </button>
+  <a class="btn ghost" href="/api/reports/anonymous.csv?{{ qs_string }}">
+    <i class="fa-solid fa-file-arrow-down"></i>
+    <span>Download CSV</span>
+  </a>
+</form>
+
+<div class="grid two">
+  <!-- Pivot breakdown -->
   <div class="card">
-    <h2>Response times</h2>
-    <p class="note">Minutes from a report arriving to a CHW's first action (take, status change or note).</p>
-    <table>
-      <tr><th></th><th>Cases</th><th>Median (min)</th><th>Average (min)</th></tr>
-      <tr><td>All cases</td><td>{{ times.overall.cases }}</td><td>{{ times.overall.median_min|default:"-" }}</td><td>{{ times.overall.average_min|default:"-" }}</td></tr>
-      <tr><td>SOS only</td><td>{{ times.sos.cases }}</td><td>{{ times.sos.median_min|default:"-" }}</td><td>{{ times.sos.average_min|default:"-" }}</td></tr>
-      {% for name, t in times.per_chw.items %}<tr><td>{{ name }}</td><td>{{ t.cases }}</td><td>{{ t.median_min|default:"-" }}</td><td>{{ t.average_min|default:"-" }}</td></tr>{% endfor %}
-    </table>
-    <p class="note"><strong>{{ times.never_answered }}</strong> cases have had no CHW action yet.</p>
+    <h2>
+      <i class="fa-solid fa-chart-column text-indigo-600"></i>
+      <span>Cases by Area and Type</span>
+    </h2>
+    {% if pivot_rows %}
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            {% for l in type_labels %}
+              <th style="text-align:center">{{ l }}</th>
+            {% endfor %}
+            <th style="text-align:center">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in pivot_rows %}
+          <tr>
+            <td><strong>{{ r.area }}</strong></td>
+            {% for c in r.cells %}
+              <td style="text-align:center">{{ c }}</td>
+            {% endfor %}
+            <td style="text-align:center"><strong>{{ r.total }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      <i class="fa-solid fa-circle-info" style="margin-right:4px"></i>
+      Areas parsed from reported locations. Cell values below {{ min_cell|default:5 }} are masked to prevent re-identification.
+    </p>
+    {% else %}
+      <div class="empty">No cases recorded in this date range.</div>
+    {% endif %}
+  </div>
+
+  <!-- Response times -->
+  <div class="card">
+    <h2>
+      <i class="fa-solid fa-stopwatch text-indigo-600"></i>
+      <span>Response Times</span>
+    </h2>
+    <p class="note" style="margin-bottom:12px">
+      Time between report arrival and first CHW intervention (claim, status update or case note).
+    </p>
+    
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Cohort</th>
+            <th style="text-align:center">Cases</th>
+            <th style="text-align:center">Median (min)</th>
+            <th style="text-align:center">Avg (min)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>All cases</strong></td>
+            <td style="text-align:center">{{ times.overall.cases }}</td>
+            <td style="text-align:center"><strong>{{ times.overall.median_min|default:"-" }}</strong></td>
+            <td style="text-align:center">{{ times.overall.average_min|default:"-" }}</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--red)"><i class="fa-solid fa-triangle-exclamation" style="margin-right:4px"></i>SOS only</strong></td>
+            <td style="text-align:center">{{ times.sos.cases }}</td>
+            <td style="text-align:center"><strong style="color:var(--red)">{{ times.sos.median_min|default:"-" }}</strong></td>
+            <td style="text-align:center">{{ times.sos.average_min|default:"-" }}</td>
+          </tr>
+          {% for name, t in times.per_chw.items %}
+          <tr>
+            <td>{{ name }}</td>
+            <td style="text-align:center">{{ t.cases }}</td>
+            <td style="text-align:center">{{ t.median_min|default:"-" }}</td>
+            <td style="text-align:center">{{ t.average_min|default:"-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note" style="margin-top:14px">
+      <strong style="color:var(--amber)">{{ times.never_answered }}</strong> cases currently pending first CHW action.
+    </p>
   </div>
 </div>
 {% endif %}

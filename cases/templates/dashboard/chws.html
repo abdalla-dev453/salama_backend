@@ -1,33 +1,362 @@
 {% extends "dashboard/base.html" %}
 {% block title %}CHWs - SALAMA Admin{% endblock %}
 {% block h1 %}Community Health Workers{% endblock %}
-{% block lead %}Add CHWs, switch accounts off when someone leaves, reset passwords. The CHW ID is the username.{% endblock %}
+{% block lead %}Manage CHW profiles, field coverage, account security and status.{% endblock %}
+
 {% block content %}
-<div class="card" style="margin-bottom:16px">
-  <h2>Add a CHW</h2>
-  <form method="post" class="formrow">{% csrf_token %}<input type="hidden" name="action" value="create">
-    <div><label>CHW ID</label><input type="text" name="username" placeholder="CHW-KWALE-005" required></div>
-    <div><label>Full name</label><input type="text" name="full_name"></div>
-    <div><label>Phone</label><input type="text" name="phone" placeholder="0712345678"></div>
-    <div><label>Area</label><input type="text" name="area" placeholder="Ukunda"></div>
-    <div><label>Password</label><input type="password" name="password" autocomplete="new-password" required></div>
-    <button class="btn" type="submit">Create</button>
+<style>
+  /* CHW Page Animations & Mobile Enhancements */
+  .chw-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .chw-stats-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid var(--line);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .chw-stats-chip i { color: var(--p600); }
+
+  /* Accordion Add Form */
+  .collapsible-form {
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .form-header-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /* CHW Responsive Card Grid for Mobile / Compact Screens */
+  .chw-card-list {
+    display: none;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .chw-mobile-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .chw-mobile-card:active { transform: scale(0.99); }
+  .chw-mobile-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .chw-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--p100), #ddd6fe);
+    color: var(--p700);
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .chw-meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .chw-id-badge {
+    display: inline-block;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--p700);
+    background: var(--p50);
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+  }
+  .chw-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .chw-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12.5px;
+  }
+  .chw-info-item span:first-child {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .chw-info-item span:last-child {
+    font-weight: 600;
+    color: var(--slate);
+  }
+  .chw-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding-top: 6px;
+    border-top: 1px dashed var(--line);
+  }
+
+  /* Desktop Table view switches to Cards on mobile view */
+  @media (max-width: 768px) {
+    .desktop-table-view { display: none; }
+    .chw-card-list { display: flex; }
+  }
+</style>
+
+<!-- Top Stats and Add Toggle -->
+<div class="chw-toolbar">
+  <div class="chw-stats-chip">
+    <i class="fa-solid fa-users"></i>
+    <span>Total CHWs: <strong>{{ chws|length }}</strong></span>
+  </div>
+  <button class="btn" type="button" onclick="toggleAddForm()" id="addToggleBtn">
+    <i class="fa-solid fa-user-plus"></i>
+    <span>Add New CHW</span>
+  </button>
+</div>
+
+<!-- Add CHW Card Form -->
+<div class="card collapsible-form" id="addChwCard" style="display:none; margin-bottom: 20px;">
+  <div class="form-header-toggle" onclick="toggleAddForm()">
+    <h2>
+      <i class="fa-solid fa-user-plus text-indigo-600"></i>
+      <span>Add Community Health Worker</span>
+    </h2>
+    <i class="fa-solid fa-xmark text-gray-400" style="cursor:pointer"></i>
+  </div>
+  <p class="note" style="margin-bottom: 16px;">The username acts as the CHW ID they enter in the SALAMA mobile app.</p>
+  
+  <form method="post" class="formrow">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create">
+    
+    <div style="flex: 1; min-width: 150px;">
+      <label>CHW ID (Username) *</label>
+      <input type="text" name="username" placeholder="CHW-KWALE-005" required style="width:100%">
+    </div>
+    <div style="flex: 1.2; min-width: 160px;">
+      <label>Full Name</label>
+      <input type="text" name="full_name" placeholder="Fatuma Juma" style="width:100%">
+    </div>
+    <div style="flex: 1; min-width: 140px;">
+      <label>Phone Number</label>
+      <input type="tel" name="phone" placeholder="0712345678" style="width:100%">
+    </div>
+    <div style="flex: 1; min-width: 140px;">
+      <label>Assigned Area</label>
+      <input type="text" name="area" placeholder="Ukunda" style="width:100%">
+    </div>
+    <div style="flex: 1.2; min-width: 160px;">
+      <label>Temporary Password *</label>
+      <input type="password" name="password" autocomplete="new-password" required placeholder="Strong password" style="width:100%">
+    </div>
+    <div style="align-self: flex-end;">
+      <button class="btn" type="submit" style="height: 42px;">
+        <i class="fa-solid fa-check"></i>
+        <span>Create Account</span>
+      </button>
+    </div>
   </form>
 </div>
+
+<!-- Main CHW Content -->
 <div class="card">
-{% if chws %}
-<table>
-  <tr><th>CHW ID</th><th>Name</th><th>Area</th><th>Phone</th><th>Open</th><th>Total</th><th>Last login</th><th>Account</th><th>New password</th></tr>
-  {% for u in chws %}
-  <tr><td><strong>{{ u.username }}</strong></td><td>{{ u.full_name|default:"-" }}</td><td>{{ u.area|default:"-" }}</td>
-    <td>{{ u.phone|default:"-" }}</td><td>{{ u.open_cases }}</td><td>{{ u.total_cases }}</td>
-    <td>{{ u.last_login|date:"d M H:i"|default:"never" }}</td>
-    <td><form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="{{ u.pk }}">
-      <button class="btn {% if u.is_active %}ghost{% endif %}" type="submit">{% if u.is_active %}Deactivate{% else %}Activate{% endif %}</button></form></td>
-    <td><form method="post" style="display:flex;gap:6px">{% csrf_token %}<input type="hidden" name="action" value="password"><input type="hidden" name="id" value="{{ u.pk }}">
-      <input type="password" name="password" placeholder="new password" autocomplete="new-password" required style="width:130px"><button class="btn ghost" type="submit">Set</button></form></td></tr>
-  {% endfor %}
-</table>
-{% else %}<div class="empty">No CHWs yet. Add the first one above.</div>{% endif %}
+  <h2>
+    <i class="fa-solid fa-address-book text-indigo-600"></i>
+    <span>Community Health Workers Roster</span>
+  </h2>
+
+  {% if chws %}
+    <!-- DESKTOP / TABLET DATA TABLE -->
+    <div class="table-responsive desktop-table-view">
+      <table>
+        <thead>
+          <tr>
+            <th>CHW ID</th>
+            <th>Name</th>
+            <th>Area</th>
+            <th>Phone</th>
+            <th style="text-align:center">Open</th>
+            <th style="text-align:center">Total</th>
+            <th>Last Login</th>
+            <th>Status</th>
+            <th>Reset Password</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in chws %}
+          <tr>
+            <td>
+              <span class="chw-id-badge">{{ u.username }}</span>
+            </td>
+            <td><strong>{{ u.full_name|default:"-" }}</strong></td>
+            <td><span class="note">{{ u.area|default:"-" }}</span></td>
+            <td>{{ u.phone|default:"-" }}</td>
+            <td style="text-align:center">
+              {% if u.open_cases > 0 %}
+                <span class="badge b-sos" style="font-size:11px">{{ u.open_cases }}</span>
+              {% else %}
+                <span class="note">0</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center"><strong>{{ u.total_cases }}</strong></td>
+            <td><span class="note">{{ u.last_login|date:"d M H:i"|default:"Never" }}</span></td>
+            <td>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle">
+                <input type="hidden" name="id" value="{{ u.pk }}">
+                <button class="btn {% if u.is_active %}ghost{% endif %}" type="submit" style="padding: 5px 12px; font-size: 12px;">
+                  {% if u.is_active %}
+                    <i class="fa-solid fa-user-slash"></i> Deactivate
+                  {% else %}
+                    <i class="fa-solid fa-user-check"></i> Activate
+                  {% endif %}
+                </button>
+              </form>
+            </td>
+            <td>
+              <form method="post" style="display:flex;gap:6px;align-items:center">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="password">
+                <input type="hidden" name="id" value="{{ u.pk }}">
+                <input type="password" name="password" placeholder="New pass" autocomplete="new-password" required style="width:110px; padding: 5px 8px; font-size: 12px;">
+                <button class="btn ghost" type="submit" style="padding: 5px 10px; font-size: 12px;" title="Update Password">
+                  <i class="fa-solid fa-key"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MOBILE CARD LIST (Mobile App Shell View) -->
+    <div class="chw-card-list">
+      {% for u in chws %}
+      <div class="chw-mobile-card">
+        <div class="chw-mobile-head">
+          <div class="chw-avatar">
+            {{ u.display_name|slice:":2"|upper }}
+          </div>
+          <div class="chw-meta">
+            <span class="chw-id-badge">{{ u.username }}</span>
+            <div class="chw-name">{{ u.full_name|default:"Unnamed CHW" }}</div>
+            <div class="note" style="font-size: 12px;">
+              <i class="fa-solid fa-location-dot" style="color:var(--p600);margin-right:3px"></i>{{ u.area|default:"Unspecified Area" }}
+            </div>
+          </div>
+          <div>
+            {% if u.is_active %}
+              <span class="badge b-closed" style="font-size:10px">Active</span>
+            {% else %}
+              <span class="badge b-sos" style="font-size:10px">Inactive</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="chw-info-grid">
+          <div class="chw-info-item">
+            <span>Phone</span>
+            <span>{{ u.phone|default:"No phone" }}</span>
+          </div>
+          <div class="chw-info-item">
+            <span>Last Login</span>
+            <span>{{ u.last_login|date:"d M H:i"|default:"Never" }}</span>
+          </div>
+          <div class="chw-info-item">
+            <span>Open Cases</span>
+            <span style="color: {% if u.open_cases > 0 %}var(--red){% else %}inherit{% endif %}">{{ u.open_cases }} open</span>
+          </div>
+          <div class="chw-info-item">
+            <span>Total Handled</span>
+            <span>{{ u.total_cases }} cases</span>
+          </div>
+        </div>
+
+        <div class="chw-actions">
+          <form method="post" style="flex:1">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle">
+            <input type="hidden" name="id" value="{{ u.pk }}">
+            <button class="btn {% if u.is_active %}ghost{% endif %}" type="submit" style="width:100%; padding: 8px; font-size: 12.5px;">
+              {% if u.is_active %}
+                <i class="fa-solid fa-ban"></i> Deactivate
+              {% else %}
+                <i class="fa-solid fa-circle-check"></i> Activate
+              {% endif %}
+            </button>
+          </form>
+
+          <!-- Password Reset Modal Toggle or Compact Form -->
+          <form method="post" style="flex:1.4; display:flex; gap: 4px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="password">
+            <input type="hidden" name="id" value="{{ u.pk }}">
+            <input type="password" name="password" placeholder="New pass" autocomplete="new-password" required style="width:100%; padding: 7px 10px; font-size: 12px;">
+            <button class="btn ghost" type="submit" style="padding: 7px 12px; font-size: 12px;" title="Reset password">
+              <i class="fa-solid fa-key"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="empty">
+      <i class="fa-solid fa-users-slash" style="font-size:32px; color:var(--muted); margin-bottom:12px; display:block"></i>
+      <p>No CHWs enrolled yet. Click "Add New CHW" above to register the first one.</p>
+    </div>
+  {% endif %}
 </div>
+
+<script>
+function toggleAddForm() {
+  const card = document.getElementById('addChwCard');
+  const btn = document.getElementById('addToggleBtn');
+  if (card.style.display === 'none') {
+    card.style.display = 'block';
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    btn.innerHTML = '<i class="fa-solid fa-minus"></i> <span>Close Form</span>';
+  } else {
+    card.style.display = 'none';
+    btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> <span>Add New CHW</span>';
+  }
+}
+</script>
 {% endblock %}

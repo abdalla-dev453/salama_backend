@@ -1,42 +1,184 @@
 {% extends "dashboard/base.html" %}
 {% block title %}Cases - SALAMA Admin{% endblock %}
 {% block h1 %}Cases{% endblock %}
-{% block lead %}Assign cases to community health workers.{% endblock %}
+{% block lead %}Filter, review, and assign cases to field CHWs.{% endblock %}
+
 {% block content %}
+<style>
+  .cases-list-cards {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .case-row-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s;
+  }
+  .case-row-card:active { transform: scale(0.99); }
+  @media (max-width: 768px) {
+    .desktop-cases-table { display: none; }
+    .cases-list-cards { display: flex; }
+    .filters { flex-direction: column; align-items: stretch; }
+    .filters select, .filters button { width: 100%; }
+  }
+</style>
+
+<!-- Filter Toolbar -->
 <form method="get" class="filters">
-  <select name="status"><option value="">All statuses</option>
-    {% for v, l in statuses %}<option value="{{ v }}" {% if v == f_status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
-  <select name="type"><option value="">All types</option>
-    {% for v, l in types %}<option value="{{ v }}" {% if v == f_type %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
-  <select name="assigned"><option value="">Any assignment</option>
-    <option value="none" {% if f_assigned == 'none' %}selected{% endif %}>Unassigned only</option></select>
-  <button class="btn" type="submit">Filter</button>
+  <select name="status">
+    <option value="">All statuses</option>
+    {% for v, l in statuses %}
+      <option value="{{ v }}" {% if v == f_status %}selected{% endif %}>{{ l }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="type">
+    <option value="">All types</option>
+    {% for v, l in types %}
+      <option value="{{ v }}" {% if v == f_type %}selected{% endif %}>{{ l }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="assigned">
+    <option value="">Any assignment</option>
+    <option value="none" {% if f_assigned == 'none' %}selected{% endif %}>Unassigned only</option>
+  </select>
+
+  <button class="btn" type="submit">
+    <i class="fa-solid fa-filter"></i>
+    <span>Apply Filters</span>
+  </button>
+  
+  {% if f_status or f_type or f_assigned %}
+    <a href="{% url 'dashboard:cases' %}" class="btn ghost" style="padding: 9px 14px;">
+      <i class="fa-solid fa-rotate-left"></i>
+      <span>Reset</span>
+    </a>
+  {% endif %}
 </form>
+
 <div class="card">
-{% if page.object_list %}
-<table>
-  <tr><th>Case ID</th><th>Type</th><th>Location</th><th>Received</th><th>Status</th><th>Assigned CHW</th></tr>
-  {% for c in page.object_list %}
-  <tr>
-    <td><a href="/admin/cases/case/{{ c.pk }}/change/"><strong>{{ c.case_ref }}</strong></a></td>
-    <td>{{ c.get_type_display }}</td><td>{{ c.location_text|default:"-" }}</td><td>{{ c.received_at|date:"d M H:i" }}</td>
-    <td><span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span></td>
-    <td>
-      <form method="post" action="{% url 'dashboard:assign' c.pk %}" style="display:flex;gap:6px">
-        {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-        <select name="chw"><option value="">- unassigned -</option>
-          {% for u in chws %}<option value="{{ u.pk }}" {% if u.pk == c.assigned_to_id %}selected{% endif %}>{{ u.display_name }}</option>{% endfor %}</select>
-        <button class="btn" type="submit">Assign</button>
-      </form>
-    </td>
-  </tr>
-  {% endfor %}
-</table>
-<div class="pager">
-  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&status={{ f_status }}&type={{ f_type }}&assigned={{ f_assigned }}">&larr; Newer</a>{% endif %}
-  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}<a href="?page={{ page.next_page_number }}&status={{ f_status }}&type={{ f_type }}&assigned={{ f_assigned }}">Older &rarr;</a>{% endif %}
-</div>
-{% else %}<div class="empty">No cases match.</div>{% endif %}
+  <h2>
+    <i class="fa-solid fa-clipboard-list text-indigo-600"></i>
+    <span>Case Directory</span>
+  </h2>
+
+  {% if page.object_list %}
+    <!-- Desktop Table View -->
+    <div class="table-responsive desktop-cases-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Case ID</th>
+            <th>Type</th>
+            <th>Location</th>
+            <th>Received</th>
+            <th>Status</th>
+            <th>Assigned CHW</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in page.object_list %}
+          <tr>
+            <td>
+              <a href="/admin/cases/case/{{ c.pk }}/change/" style="text-decoration:none; color:var(--p700)">
+                <strong>{{ c.case_ref }}</strong>
+              </a>
+            </td>
+            <td>{{ c.get_type_display }}</td>
+            <td><span class="note">{{ c.location_text|default:"-" }}</span></td>
+            <td><span class="note">{{ c.received_at|date:"d M H:i" }}</span></td>
+            <td><span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span></td>
+            <td>
+              <form method="post" action="{% url 'dashboard:assign' c.pk %}" style="display:flex;gap:6px;align-items:center">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <select name="chw" style="padding:6px 10px; font-size:12.5px">
+                  <option value="">- unassigned -</option>
+                  {% for u in chws %}
+                    <option value="{{ u.pk }}" {% if u.pk == c.assigned_to_id %}selected{% endif %}>{{ u.display_name }}</option>
+                  {% endfor %}
+                </select>
+                <button class="btn" type="submit" style="padding:6px 12px; font-size:12.5px">Assign</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Cards View -->
+    <div class="cases-list-cards">
+      {% for c in page.object_list %}
+      <div class="case-row-card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+          <div>
+            <a href="/admin/cases/case/{{ c.pk }}/change/" style="text-decoration:none">
+              <strong style="color:var(--p700); font-size:15px">{{ c.case_ref }}</strong>
+            </a>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px">{{ c.get_type_display }}</div>
+          </div>
+          <span class="badge b-{{ c.status }}">{{ c.get_status_display }}</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12.5px; background:#f8fafc; padding:8px 10px; border-radius:10px">
+          <div>
+            <span style="color:var(--muted); font-size:11px; display:block">Location</span>
+            <span style="font-weight:600">{{ c.location_text|default:"-" }}</span>
+          </div>
+          <div>
+            <span style="color:var(--muted); font-size:11px; display:block">Received</span>
+            <span style="font-weight:600">{{ c.received_at|date:"d M H:i" }}</span>
+          </div>
+        </div>
+
+        <form method="post" action="{% url 'dashboard:assign' c.pk %}" style="display:flex;gap:6px;align-items:center">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <select name="chw" style="flex:1; padding:7px 10px; font-size:12.5px">
+            <option value="">- assign CHW -</option>
+            {% for u in chws %}
+              <option value="{{ u.pk }}" {% if u.pk == c.assigned_to_id %}selected{% endif %}>{{ u.display_name }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn" type="submit" style="padding:7px 14px; font-size:12.5px">Assign</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="pager">
+      <div>
+        {% if page.has_previous %}
+          <a class="btn ghost" href="?page={{ page.previous_page_number }}&status={{ f_status }}&type={{ f_type }}&assigned={{ f_assigned }}" style="padding:6px 14px; font-size:12.5px">
+            &larr; Newer
+          </a>
+        {% endif %}
+      </div>
+      <span class="note" style="font-weight:600">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+      <div>
+        {% if page.has_next %}
+          <a class="btn ghost" href="?page={{ page.next_page_number }}&status={{ f_status }}&type={{ f_type }}&assigned={{ f_assigned }}" style="padding:6px 14px; font-size:12.5px">
+            Older &rarr;
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+  {% else %}
+    <div class="empty">
+      <i class="fa-solid fa-magnifying-glass" style="font-size:32px; color:var(--muted); margin-bottom:8px; display:block"></i>
+      <p>No cases match your active filters.</p>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}
