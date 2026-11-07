@@ -117,18 +117,6 @@ CACHES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Throttle counters (login attempts, intake rate limits) are kept in the
-# database so ALL gunicorn workers share them. Without this each worker would
-# count separately and the limits would be several times too generous.
-# `python manage.py createcachetable` creates the table (the Docker
-# entrypoint does it for you).
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-        "LOCATION": "salama_cache",
-    }
-}
-
 # --------------------------------------------------------------------------
 # Auth
 # --------------------------------------------------------------------------
@@ -234,7 +222,6 @@ if not FIELD_ENCRYPTION_KEYS:
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", True)
-    SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]  # so Docker's health check works
     SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]  # container health checks use plain http
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

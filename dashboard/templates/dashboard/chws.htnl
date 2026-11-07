@@ -1,0 +1,148 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}CHWs - SALAMA Admin{% endblock %}
+{% block h1 %}Community Health Workers{% endblock %}
+{% block lead %}Add CHWs, switch accounts off when someone leaves, reset passwords. The CHW ID is the username.{% endblock %}
+
+{% block content %}
+<div class="space-y-10">
+
+    <!-- ADD A CHW FORM PANEL -->
+    <section class="bg-gray-50 border border-gray-100 rounded-xl p-6 shadow-sm max-w-2xl">
+        <h3 class="text-base font-bold text-gray-900 mb-4 flex items-center space-x-2">
+            <i class="fa-solid fa-user-plus text-indigo-600 text-sm"></i>
+            <span>Add a CHW</span>
+        </h3>
+        
+        <form method="POST" action="" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% csrf_token %}
+            
+            <div class="space-y-1.5">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">CHW ID</label>
+                <input type="text" name="username" placeholder="CHW-KWALE-005" class="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700">
+            </div>
+            
+            <div class="space-y-1.5">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Full name</label>
+                <input type="text" name="full_name" class="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700">
+            </div>
+            
+            <div class="space-y-1.5">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Phone</label>
+                <input type="text" name="phone" placeholder="0712345678" class="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700">
+            </div>
+            
+            <div class="space-y-1.5">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Area</label>
+                <input type="text" name="area" placeholder="Ukunda" class="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700">
+            </div>
+            
+            <div class="space-y-1.5 sm:col-span-2">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Password</label>
+                <input type="password" name="password" class="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700">
+            </div>
+            
+            <div class="sm:col-span-2 pt-2">
+                <button type="submit" name="action" value="create" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-5 py-2 rounded-lg transition shadow-sm">
+                    Create Account
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- MANAGEMENT MANAGEMENT LIST TABLE -->
+    <section class="space-y-3">
+        <div class="border-b border-gray-100 pb-2">
+            <h3 class="text-lg font-bold text-gray-900">Active Community Health Workers</h3>
+        </div>
+
+        {% if chws %}
+            <div class="overflow-x-auto border border-gray-200 rounded-xl shadow-sm bg-white">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold tracking-wide">
+                            <th class="p-4">CHW ID</th>
+                            <th class="p-4">Name</th>
+                            <th class="p-4">Area</th>
+                            <th class="p-4">Phone</th>
+                            <th class="p-4 text-center">Open</th>
+                            <th class="p-4 text-center">Total</th>
+                            <th class="p-4">Last login</th>
+                            <th class="p-4 text-center">Account</th>
+                            <th class="p-4">New password</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-gray-700">
+                        {% for u in chws %}
+                            <tr class="hover:bg-gray-50 transition">
+                                <!-- CHW ID -->
+                                <td class="p-4 font-mono font-semibold text-gray-900">
+                                    {{ u.username }}
+                                </td>
+                                <!-- Name -->
+                                <td class="p-4 font-medium text-gray-900">
+                                    {{ u.full_name|default:"-" }}
+                                </td>
+                                <!-- Area -->
+                                <td class="p-4 text-gray-500">
+                                    {{ u.area|default:"-" }}
+                                </td>
+                                <!-- Phone -->
+                                <td class="p-4 font-mono text-gray-500">
+                                    {{ u.phone|default:"-" }}
+                                </td>
+                                <!-- Open Cases Count -->
+                                <td class="p-4 text-center font-semibold text-amber-600 bg-amber-50/20">
+                                    {{ u.open_cases }}
+                                </td>
+                                <!-- Total Cases Count -->
+                                <td class="p-4 text-center font-semibold text-indigo-600 bg-indigo-50/20">
+                                    {{ u.total_cases }}
+                                </td>
+                                <!-- Last Login -->
+                                <td class="p-4 text-xs text-gray-400 whitespace-nowrap">
+                                    {{ u.last_login|date:"d M H:i"|default:"never" }}
+                                </td>
+                                <!-- Account Toggle Switch Action -->
+                                <td class="p-4 text-center">
+                                    <form method="POST" action="" class="inline-block">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ u.id }}">
+                                        {% if u.is_active %}
+                                            <button type="submit" name="action" value="deactivate" class="bg-red-50 text-red-700 border border-red-200 text-xs font-semibold px-2.5 py-1 rounded-full hover:bg-red-100 transition">
+                                                Deactivate
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" name="action" value="activate" class="bg-green-50 text-green-700 border border-green-200 text-xs font-semibold px-2.5 py-1 rounded-full hover:bg-green-100 transition">
+                                                Activate
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                </td>
+                                <!-- Change Password Embedded Form Row -->
+                                <td class="p-4">
+                                    <form method="POST" action="" class="flex items-center space-x-1.5">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ u.id }}">
+                                        <input type="password" name="new_password" placeholder="new password" class="border border-gray-200 bg-gray-50 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 w-32">
+                                        <button type="submit" name="action" value="set_password" class="bg-gray-900 hover:bg-black text-white text-xs font-semibold px-2.5 py-1 rounded-lg transition">
+                                            Set
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <!-- EMPTY CASE CONTAINER -->
+            <div class="p-12 border border-dashed border-gray-200 rounded-xl text-center text-gray-400 bg-gray-50/50">
+                <i class="fa-solid fa-users-slash text-3xl mb-3 block text-gray-300"></i>
+                <p class="text-sm font-medium">No CHWs yet. Add the first one above.</p>
+            </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "dashboard/base.html" %}
+
+{% block h1 %}
+Monthly report ({{ month }})
+{% endblock %}
+
+{% block lead %}
+Print with Ctrl+P and choose "Save as PDF". Counts under 5 are hidden.
+{% endblock %}
+
+{% block head %}
+<!-- Add any custom page specific styles or scripts here -->
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Action Controls -->
+    <div class="mb-3">
+        <button class="btn btn-primary btn-sm" id="show-btn">Show</button>
+        <a href="?download=csv" class="btn btn-secondary btn-sm">Download CSV</a>
+    </div>
+
+    <!-- Summary Metrics -->
+    <h3 class="mb-4">Total cases received: {{ total }}</h3>
+
+    <!-- Breakdown Section: By Type -->
+    <div class="card mb-4">
+        <div class="card-header"><strong>By type</strong></div>
+        <ul class="list-group list-group-flush">
+            {% for n in types %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ n.name }}
+                    <span class="badge bg-primary rounded-pill">{{ n.count }}</span>
+                </li>
+            {% empty %}
+                <li class="list-group-item text-muted">No types recorded this month.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Breakdown Section: By Status -->
+    <div class="card mb-4">
+        <div class="card-header"><strong>By status</strong></div>
+        <ul class="list-group list-group-flush">
+            {% for n in statuses %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ n.name }}
+                    <span class="badge bg-primary rounded-pill">{{ n.count }}</span>
+                </li>
+            {% empty %}
+                <li class="list-group-item text-muted">No status updates available.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Breakdown Section: By Area -->
+    <div class="card mb-4">
+        <div class="card-header"><strong>By area</strong></div>
+        <ul class="list-group list-group-flush">
+            {% for n in areas %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ n.name }}
+                    <span class="badge bg-primary rounded-pill">{{ n.count }}</span>
+                </li>
+            {% empty %}
+                <li class="list-group-item text-muted">No area metrics reported.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Footer Notice -->
+    <div class="alert alert-info mt-4" role="alert">
+        <p class="mb-1"><strong>Feedback responses this month:</strong> {{ fb_n }}</p>
+        <small class="text-muted">No survivor descriptions, phone numbers, or exact locations appear in this report.</small>
+    </div>
+</div>
+{% endblock %}
