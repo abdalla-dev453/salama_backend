@@ -1,0 +1,136 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Analytics - SALAMA Admin{% endblock %}
+{% block h1 %}Analytics{% endblock %}
+
+{% block lead %}
+Anonymous numbers for reports. No names, no phone numbers. Counts under {{ min_cell|default:5 }} show as <{{ min_cell|default:5 }}.
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <!-- TOP SECTION: Filter Controls or Alerts -->
+    {% if not enabled %}
+        <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 flex items-center space-x-3 text-sm">
+            <i class="fa-solid fa-triangle-exclamation text-lg shrink-0"></i>
+            <span>Analytics needs the v4 "extras" app. Run <code class="bg-amber-100 px-1.5 py-0.5 rounded font-mono text-xs">apply_extras.py</code> first.</span>
+        </div>
+    {% else %}
+        <!-- Date Filter Form Controls -->
+        <form method="GET" action="" class="bg-gray-50 border border-gray-100 p-4 rounded-xl flex flex-wrap items-center gap-4 shadow-sm">
+            <div class="flex items-center space-x-2">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">From:</label>
+                <input type="date" name="start_date" class="border border-gray-200 bg-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700">
+            </div>
+            <div class="flex items-center space-x-2">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">To:</label>
+                <input type="date" name="end_date" class="border border-gray-200 bg-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700">
+            </div>
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-1.5 rounded-lg transition shadow-sm flex items-center space-x-1.5">
+                <i class="fa-solid fa-filter text-xs"></i>
+                <span>Apply</span>
+            </button>
+            <a href="#" class="ml-auto text-sm text-indigo-600 hover:text-indigo-800 font-semibold flex items-center space-x-1">
+                <i class="fa-solid fa-file-arrow-down text-xs"></i>
+                <span>Download CSV</span>
+            </a>
+        </form>
+
+        <!-- CASES BY AREA AND TYPE SECTION -->
+        <section class="space-y-3">
+            <div class="border-b border-gray-100 pb-2">
+                <h3 class="text-lg font-bold text-gray-900">Cases by area and type</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Area comes from the words in the location the survivor typed (Ukunda, Diani, Msambweni...).</p>
+            </div>
+
+            {% if pivot_rows %}
+                <div class="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
+                                <th class="p-4 font-bold text-gray-900">Area</th>
+                                {% for l in type_labels %}
+                                    <th class="p-4">{{ l }}</th>
+                                {% endfor %}
+                                <th class="p-4 font-bold text-gray-900">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 bg-white text-gray-700">
+                            {% for r in pivot_rows %}
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="p-4 font-medium text-gray-900 bg-gray-50/50">{{ r.area }}</td>
+                                    {% for c in r.cells %}
+                                        <td class="p-4 font-mono">{{ c }}</td>
+                                    {% endfor %}
+                                    <td class="p-4 font-bold text-indigo-600 bg-indigo-50/30">{{ r.total }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-6 border border-dashed border-gray-200 rounded-xl text-center text-gray-400 bg-gray-50/50 text-sm">
+                    <i class="fa-solid fa-folder-open text-2xl mb-2 block text-gray-300"></i>
+                    No cases in this period.
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- RESPONSE TIMES SECTION -->
+        <section class="space-y-4 pt-4">
+            <div class="border-b border-gray-100 pb-2">
+                <h3 class="text-lg font-bold text-gray-900">Response times</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Minutes from a report arriving to a CHW's first action (take, status change or note).</p>
+            </div>
+
+            <!-- Table Layout for response stats -->
+            <div class="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-bold uppercase tracking-wider">
+                            <th class="p-4">Cases</th>
+                            <th class="p-4">Median (min)</th>
+                            <th class="p-4">Average (min)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white text-gray-700">
+                        <!-- Overall Base Cases Row -->
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="p-4 font-medium text-gray-900">All cases</td>
+                            <td class="p-4 font-mono font-semibold">{{ times.overall.median_min|default:"-" }}</td>
+                            <td class="p-4 font-mono font-semibold">{{ times.overall.average_min|default:"-" }}</td>
+                        </tr>
+                        <!-- Emergency SOS Row -->
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="p-4 font-medium text-gray-900">SOS only</td>
+                            <td class="p-4 font-mono font-semibold">{{ times.sos.median_min|default:"-" }}</td>
+                            <td class="p-4 font-mono font-semibold">{{ times.sos.average_min|default:"-" }}</td>
+                        </tr>
+                        <!-- Iterative Key/Value Pair Loops -->
+                        {% for name, t in times.per_chw.items %}
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="p-4 pl-6 text-gray-600 flex items-center space-x-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                                    <span>{{ name }}</span>
+                                </td>
+                                <td class="p-4 font-mono text-gray-500">{{ t.median_min|default:"-" }}</td>
+                                <td class="p-4 font-mono text-gray-500">{{ t.average_min|default:"-" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Unanswered Context Alert Flag Footer -->
+            {% if times.never_answered %}
+                <div class="p-4 bg-red-50 border border-red-100 text-red-800 rounded-xl text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-exclamation shrink-0"></i>
+                    <span><strong>{{ times.never_answered }}</strong> cases have had no CHW action yet.</span>
+                </div>
+            {% endif %}
+        </section>
+
+    {% endif %}
+</div>
+{% endblock %}

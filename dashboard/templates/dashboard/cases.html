@@ -1,0 +1,133 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Cases - SALAMA Admin{% endblock %}
+{% block h1 %}Cases{% endblock %}
+{% block lead %}Assign cases to community health workers.{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- FILTERS BAR -->
+    <div class="bg-gray-50 border border-gray-100 p-4 rounded-xl shadow-sm flex flex-wrap items-center gap-4">
+        <div class="flex items-center space-x-2">
+            <select class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option>All statuses</option>
+            </select>
+        </div>
+        <div class="flex items-center space-x-2">
+            <select class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option>All types</option>
+            </select>
+        </div>
+        <div class="flex items-center space-x-2">
+            <select class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option>Any assignment</option>
+            </select>
+        </div>
+        <button type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-1.5 rounded-lg transition shadow-sm flex items-center space-x-1.5">
+            <i class="fa-solid fa-filter text-xs"></i>
+            <span>Filter</span>
+        </button>
+    </div>
+
+    <!-- DATA TABLE AREA -->
+    {% if page.object_list %}
+        <div class="overflow-x-auto border border-gray-200 rounded-xl shadow-sm bg-white">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold tracking-wide">
+                        <th class="p-4">Case ID</th>
+                        <th class="p-4">Type</th>
+                        <th class="p-4">Location</th>
+                        <th class="p-4">Received</th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Assigned CHW</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-gray-700">
+                    {% for c in page.object_list %}
+                        <tr class="hover:bg-gray-50 transition">
+                            <!-- Case ID -->
+                            <td class="p-4 font-mono font-medium text-indigo-600">
+                                {{ c.case_ref }}
+                            </td>
+                            <!-- Type -->
+                            <td class="p-4 font-medium text-gray-900">
+                                {{ c.get_type_display }}
+                            </td>
+                            <!-- Location -->
+                            <td class="p-4 text-gray-500">
+                                {{ c.location_text|default:"-" }}
+                            </td>
+                            <!-- Received Date -->
+                            <td class="p-4 text-gray-500 whitespace-nowrap">
+                                {{ c.received_at|date:"d M H:i" }}
+                            </td>
+                            <!-- Status -->
+                            <td class="p-4">
+                                <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-800 border border-amber-100">
+                                    {{ c.get_status_display }}
+                                </span>
+                            </td>
+                            <!-- Assigned CHW Action Form -->
+                            <td class="p-4">
+                                <form method="POST" action="" class="flex items-center space-x-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="case_id" value="{{ c.id }}">
+                                    <select name="chw" class="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[150px]">
+                                        <option value="">unassigned</option>
+                                        <!-- Map dynamic CHW lists loops here if necessary -->
+                                    </select>
+                                    <button type="submit" class="bg-gray-900 hover:bg-black text-white text-xs font-semibold px-3 py-1 rounded-md transition">
+                                        Assign
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION CONTROL ELEMENT -->
+        <div class="flex items-center justify-between border-t border-gray-100 pt-4 text-sm text-gray-600">
+            <div>
+                Page <span class="font-semibold text-gray-900">{{ page.number }}</span> of <span class="font-semibold text-gray-900">{{ page.paginator.num_pages }}</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                {% if page.has_previous %}
+                    <a href="?page={{ page.previous_page_number }}" class="inline-flex items-center space-x-1 px-3 py-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition font-medium text-xs">
+                        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                        <span>Newer</span>
+                    </a>
+                {% else %}
+                    <span class="inline-flex items-center space-x-1 px-3 py-1.5 border border-gray-100 rounded-lg bg-gray-50 text-gray-300 font-medium text-xs cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                        <span>Newer</span>
+                    </span>
+                {% endif %}
+
+                {% if page.has_next %}
+                    <a href="?page={{ page.next_page_number }}" class="inline-flex items-center space-x-1 px-3 py-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition font-medium text-xs">
+                        <span>Older</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </a>
+                {% else %}
+                    <span class="inline-flex items-center space-x-1 px-3 py-1.5 border border-gray-100 rounded-lg bg-gray-50 text-gray-300 font-medium text-xs cursor-not-allowed">
+                        <span>Older</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+    {% else %}
+        <!-- EMPTY CONTENT STATE -->
+        <div class="p-12 border border-dashed border-gray-200 rounded-xl text-center text-gray-400 bg-gray-50/50">
+            <i class="fa-solid fa-inbox text-3xl mb-3 block text-gray-300"></i>
+            <p class="text-sm font-medium">No cases match.</p>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

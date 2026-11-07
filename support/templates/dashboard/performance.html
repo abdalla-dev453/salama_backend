@@ -1,0 +1,77 @@
+{% extends "dashboard/base.html" %}
+
+{% block h1 %}CHW performance{% endblock %}
+
+{% block lead %}
+For support and planning, not punishment. Last 30 days.
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Performance Metrics Table -->
+    <div class="table-responsive mb-4">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col" style="width: 20%;">CHW</th>
+                    <th scope="col" style="width: 15%;">Area</th>
+                    <th scope="col" style="width: 10%;" class="text-center">Cases</th>
+                    <th scope="col" style="width: 10%;" class="text-center">Still open</th>
+                    <th scope="col" style="width: 10%;" class="text-center">Closed</th>
+                    <th scope="col" style="width: 15%;" class="text-center">Closure rate</th>
+                    <th scope="col" style="width: 20%;" class="text-center">Median first response</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <!-- CHW Name -->
+                    <td><strong>{{ r.name|default:"-" }}</strong></td>
+                    
+                    <!-- Area -->
+                    <td>{{ r.area|default:"-" }}</td>
+                    
+                    <!-- Total Cases -->
+                    <td class="text-center">{{ r.cases }}</td>
+                    
+                    <!-- Still Open Cases -->
+                    <td class="text-center">{{ r.open }}</td>
+                    
+                    <!-- Closed Cases -->
+                    <td class="text-center">{{ r.closed }}</td>
+                    
+                    <!-- Closure Rate Percentages -->
+                    <td class="text-center">
+                        {% if r.rate is None %}
+                            <span class="text-muted">-</span>
+                        {% else %}
+                            <span class="fw-semibold">{{ r.rate }}%</span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Median First Response Time -->
+                    <td class="text-center">
+                        {% if r.median is None %}
+                            <span class="text-muted">-</span>
+                        {% else %}
+                            <span>{{ r.median }} min</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No CHWs yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Explanatory Footnote -->
+    <div class="text-muted small border-top pt-2">
+        <p>💡 <strong>Median first response</strong> – time from the case arriving to the CHW's first logged action on it.</p>
+    </div>
+</div>
+{% endblock %}

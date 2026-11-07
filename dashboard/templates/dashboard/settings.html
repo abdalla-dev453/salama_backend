@@ -1,0 +1,96 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Settings - SALAMA Admin{% endblock %}
+{% block h1 %}Settings{% endblock %}
+{% block lead %}System status (read-only) and shortcuts. Secrets are never shown here.{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <!-- SYSTEM STATUS LOG PANEL -->
+    <section class="space-y-4">
+        <div class="border-b border-gray-100 pb-2">
+            <h3 class="text-base font-bold text-gray-900 flex items-center space-x-2">
+                <i class="fa-solid fa-server text-indigo-600 text-sm"></i>
+                <span>System Status</span>
+            </h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for name, ok, hint in checks %}
+                <div class="p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex items-start justify-between space-x-4">
+                    <div class="space-y-1">
+                        <span class="block text-sm font-semibold text-gray-900">{{ name }}</span>
+                        {% if hint %}
+                            <p class="text-xs text-gray-500 font-mono bg-gray-50 p-2 rounded-lg border border-gray-100/50">{{ hint }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Dynamic On/Off Status Badge Elements -->
+                    <div>
+                        {% if ok %}
+                            <span class="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded-full bg-green-50 text-green-700 border border-green-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                <span>On</span>
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded-full bg-red-50 text-red-700 border border-red-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                <span>Off</span>
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <p class="text-xs text-gray-400 flex items-center space-x-1.5 pt-1">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Change these in the server's <code class="bg-gray-100 px-1 rounded font-mono text-gray-600 font-semibold">.env</code> file, then restart.</span>
+        </p>
+    </section>
+
+    <!-- MANAGE MANAGEMENT SHORCUT LINKS LINK GRID -->
+    <section class="space-y-3">
+        <div class="border-b border-gray-100 pb-2">
+            <h3 class="text-base font-bold text-gray-900 flex items-center space-x-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-indigo-600 text-sm"></i>
+                <span>Manage</span>
+            </h3>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+            {% for label, url in links %}
+                <a href="{{ url }}" class="inline-flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-indigo-500 hover:text-indigo-600 text-gray-700 text-sm font-semibold rounded-xl shadow-sm transition group">
+                    <span>{{ label }}</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-400 group-hover:text-indigo-500 transition"></i>
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- DATA PROTECTION COMPLIANCE REMINDERS LIST -->
+    <section class="bg-indigo-950 text-indigo-100 rounded-xl p-6 shadow-sm border border-indigo-900 space-y-4">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+            <i class="fa-solid fa-shield-halved text-indigo-400 text-sm"></i>
+            <span>Data protection reminders</span>
+        </h3>
+        
+        <ul class="space-y-2 text-sm text-indigo-200/90 list-none pl-1">
+            <li class="flex items-start space-x-3">
+                <i class="fa-solid fa-circle-check text-xs text-indigo-400 mt-1 shrink-0"></i>
+                <span>Back up the database and the encryption keys separately.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+                <i class="fa-solid fa-circle-check text-xs text-indigo-400 mt-1 shrink-0"></i>
+                <span>Run <code class="bg-indigo-900 text-indigo-300 font-mono text-xs px-1.5 py-0.5 rounded border border-indigo-800">purge_old_cases</code> on a schedule that matches your retention policy.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+                <i class="fa-solid fa-circle-check text-xs text-indigo-400 mt-1 shrink-0"></i>
+                <span>Remove CHW accounts when people leave (Deactivate on the CHWs page).</span>
+            </li>
+        </ul>
+    </section>
+
+</div>
+{% endblock %}
